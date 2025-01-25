@@ -15,6 +15,7 @@ qt_add_executable(3dviewer
 
     fshader.fsh
     ress.qrc
+    player.cpp
 
 )
 

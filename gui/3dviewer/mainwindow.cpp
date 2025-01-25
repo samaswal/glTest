@@ -7,29 +7,29 @@ void GLViewScreen::initializeGL() {
     glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
     initShaders();
     initCube(1);
-    view.setToIdentity();
     projection.setToIdentity();
-    cameraPos = new QVector3D(0.0f, 0.0f, 3.0f);
-    cameraFront = new QVector3D(0.0f, 0.0f, -1.0f);
-    cameraUp = new QVector3D(0.0f, 1.0f, 0.0f);
-    //keys.fill(false);
+
+    player = new Player(QVector3D(0.0f, 0.0f, 3.0f), QVector3D(0.0f, 0.0f, -1.0f), QVector3D(0.0f, 1.0f, 0.0f));
+
+    keys.fill(false);
     lastTime = QTime::currentTime().msecsSinceStartOfDay();
     direction.setX(0);
     setMouseTracking(true);
+    //mouseX = QCursor().pos().x();
+    //mouseY = QCursor().pos().y();
+    firstMouse = true;
 
 }
 
 void GLViewScreen::resizeGL(int w, int h) {
-    glViewport(0, 0, w, h);
+    //glViewport(0, 0, w, h);
     //view.translate(QVector3D(0.0f, 0.0f, 0.0f));
-    projection.perspective(80.0f, static_cast<GLfloat>((w) / (h)), 0.1f, 100.0f);
+    projection.perspective(80.0f, static_cast<GLfloat>((800) / (600)), 0.1f, 100.0f);
 }
 
 void GLViewScreen::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     move();
-    QMatrix4x4 vi;
-    vi.lookAt(*cameraPos, *cameraPos + *cameraFront, *cameraUp);
     int vertLoc = 0;
     int colorLoc = 1;
     int texLoc = m_program.attributeLocation("texCoord");
@@ -49,7 +49,7 @@ void GLViewScreen::paintGL() {
     m_program.setUniformValue("tex", 4);
     m_program.setUniformValue("tex1", 5);
     m_program.setUniformValue("rate", rate);
-    m_program.setUniformValue("view", vi);
+    m_program.setUniformValue("view", player->GetViewMatrix());
     m_program.setUniformValue("projection", projection);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     for(int i = 0; i < 10; i++) {
@@ -215,144 +215,9 @@ void GLViewScreen::move() {
     curTime = QTime::currentTime().msecsSinceStartOfDay();
     speed *= (curTime - lastTime);
     lastTime = curTime;
-    if(keys[Qt::Key_W]) {
-        *cameraPos += *cameraFront * speed;
-    }
-    if(keys[Qt::Key_S]) {
-        *cameraPos -= *cameraFront * speed;
-    }
-    if(keys[Qt::Key_D]) {
-        *cameraPos += QVector3D::crossProduct(*cameraFront, *cameraUp).normalized() * speed;
-    }
-    if(keys[Qt::Key_A]) {
-        *cameraPos -= QVector3D::crossProduct(*cameraFront, *cameraUp).normalized() * speed;
-    }
-    //keys.fill(false);
-
+    player->move(keys, speed);
 }
 
-/*
-void GLViewScreen::initializeGL() {
-    QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
-    f->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    f->glEnable(GL_DEPTH_TEST);
-    f->glEnable(GL_CULL_FACE);
-
-    initShaders();
-    initCube(1.0f);
-
-}
-
- void GLViewScreen::resizeGL(int w, int h) {
-     float aspect = w / (float) h;
-     m_projectionMatrix.setToIdentity();
-     m_projectionMatrix.perspective(45, aspect, 0.1f, 10.0f);
-}
-
-void GLViewScreen::paintGL() {
-    QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
-    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    QMatrix4x4 m_modelView;
-    m_modelView.setToIdentity();
-    m_modelView.translate(0.0, 0.0, -5.0);
-
-    m_program.bind();
-
-    m_program.setUniformValue("qt_ModelViewProjectionMatrix;", m_projectionMatrix * m_modelView);
-    m_program.setUniformValue("qt_Texture0", 0);
-
-    m_arrayBuffer.bind();
-
-    int offset = 0; // Белый цвет линий
-
-    int vertLoc = m_program.attributeLocation("qt_Vertex");
-    m_program.enableAttributeArray(vertLoc);
-    m_program.setAttributeBuffer(vertLoc, GL_FLOAT, offset, 3, sizeof(VertexData));
-
-    offset += sizeof(QVector3D);
-
-    int texLoc = m_program.attributeLocation("qt_MultiTexCoord0");
-
-    f->glDrawElements(GL_TRIANGLES, m_indexBuffer.size(), GL_UNSIGNED_INT, 0);
-}
-
-void GLViewScreen::initShaders() {
-
-    if(!m_program.addShaderFromSourceCode(QOpenGLShader::Vertex,
-                                      "#version 330 core\n"
-                                      "layout(location = 0) in vec3 vertexPosition;\n"
-                                      "uniform mat4 modelViewProjection;\n"
-                                      "void main() {\n"
-                                      "   gl_Position = modelViewProjection * vec4(vertexPosition, 1.0);\n"
-                                      "}"
-                                           )) close();
-
-    if(!m_program.addShaderFromSourceCode(QOpenGLShader::Fragment,
-                                      "#version 330 core\n"
-                                      "out vec4 FragColor;\n"
-                                      "void main() {\n"
-                                      "   FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n" // Белый цвет линий
-                                      "}"
-                                           )) close();
-
-    if(!m_program.link())
-        close();
-}
-
-void GLViewScreen::initCube(float width) {
-    float width_div_2 = width / 2.0f;
-    QVector<VertexData> verteces;
-    verteces.append(VertexData(QVector3D(-width_div_2, width_div_2, width_div_2), QVector3D(0.0, 0.0, 1.0)));
-    verteces.append(VertexData(QVector3D(-width_div_2, -width_div_2, width_div_2), QVector3D(0.0, 0.0, 1.0)));
-    verteces.append(VertexData(QVector3D(width_div_2, width_div_2, width_div_2), QVector3D(0.0, 0.0, 1.0)));
-    verteces.append(VertexData(QVector3D(width_div_2, -width_div_2, width_div_2), QVector3D(0.0, 0.0, 1.0)));
-
-    verteces.append(VertexData(QVector3D(width_div_2, width_div_2, width_div_2), QVector3D(1.0, 0.0, 0.0)));
-    verteces.append(VertexData(QVector3D(width_div_2, -width_div_2, width_div_2), QVector3D(1.0, 0.0, 0.0)));
-    verteces.append(VertexData(QVector3D(width_div_2, width_div_2, -width_div_2), QVector3D(1.0, 0.0, 0.0)));
-    verteces.append(VertexData(QVector3D(width_div_2, -width_div_2, -width_div_2), QVector3D(1.0, 0.0, 0.0)));
-
-    verteces.append(VertexData(QVector3D(width_div_2, width_div_2, width_div_2), QVector3D(0.0, 1.0, 0.0)));
-    verteces.append(VertexData(QVector3D(-width_div_2, width_div_2, width_div_2), QVector3D(0.0, 1.0, 0.0)));
-    verteces.append(VertexData(QVector3D(width_div_2, width_div_2, -width_div_2), QVector3D(0.0, 1.0, 0.0)));
-    verteces.append(VertexData(QVector3D(-width_div_2, width_div_2, -width_div_2), QVector3D(0.0, 1.0, 0.0)));
-
-    verteces.append(VertexData(QVector3D(width_div_2, width_div_2, -width_div_2), QVector3D(0.0, 0.0, -1.0)));
-    verteces.append(VertexData(QVector3D(width_div_2, -width_div_2, -width_div_2), QVector3D(0.0, 0.0, -1.0)));
-    verteces.append(VertexData(QVector3D(-width_div_2, width_div_2, -width_div_2), QVector3D(0.0, 0.0, -1.0)));
-    verteces.append(VertexData(QVector3D(-width_div_2, -width_div_2, -width_div_2), QVector3D(0.0, 0.0, -1.0)));
-
-    verteces.append(VertexData(QVector3D(-width_div_2, width_div_2, width_div_2), QVector3D(-1.0, 0.0, 0.0)));
-    verteces.append(VertexData(QVector3D(-width_div_2, width_div_2, -width_div_2), QVector3D(-1.0, 0.0, 0.0)));
-    verteces.append(VertexData(QVector3D(-width_div_2, -width_div_2, width_div_2), QVector3D(-1.0, 0.0, 0.0)));
-    verteces.append(VertexData(QVector3D(-width_div_2, -width_div_2, -width_div_2), QVector3D(-1.0, 0.0, 0.0)));
-
-    verteces.append(VertexData(QVector3D(-width_div_2, -width_div_2, width_div_2), QVector3D(0.0, -1.0, 0.0)));
-    verteces.append(VertexData(QVector3D(-width_div_2, -width_div_2, -width_div_2), QVector3D(0.0, -1.0, 0.0)));
-    verteces.append(VertexData(QVector3D(width_div_2, -width_div_2, width_div_2), QVector3D(0.0, -1.0, 0.0)));
-    verteces.append(VertexData(QVector3D(width_div_2, -width_div_2, -width_div_2), QVector3D(0.0, -1.0, 0.0)));
-
-    QVector<GLuint> indexes;
-    for(int i = 0; i < 24; i += 4) {
-        indexes.append(i + 0);
-        indexes.append(i + 1);
-        indexes.append(i + 2);
-        indexes.append(i + 2);
-        indexes.append(i + 1);
-        indexes.append(i + 3);
-    }
-    m_arrayBuffer.create();
-    m_arrayBuffer.bind();
-    m_arrayBuffer.allocate(verteces.constData(), verteces.size() * sizeof(VertexData));
-    m_arrayBuffer.release();
-
-    m_indexBuffer.create();
-    m_indexBuffer.bind();
-    m_indexBuffer.allocate(indexes.constData(), indexes.size() * sizeof(GLuint));
-    m_indexBuffer.release();
-}
-
-*/
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -406,6 +271,12 @@ void MainWindow::keyPressEvent(QKeyEvent *e) {
         case Qt::Key_A:
             screen->keys[Qt::Key_A] = true;
             break;
+        case Qt::Key_Space:
+            screen->keys[Qt::Key_Space] = true;
+            break;
+        case Qt::Key_C:
+            screen->keys[Qt::Key_C] = true;
+            break;
         case Qt::Key_Escape:
             close();
             break;
@@ -428,17 +299,18 @@ void MainWindow::keyReleaseEvent(QKeyEvent *e) {
     case Qt::Key_A:
         screen->keys[Qt::Key_A] = false;
         break;
+    case Qt::Key_Space:
+        screen->keys[Qt::Key_Space] = false;
+        break;
+    case Qt::Key_C:
+        screen->keys[Qt::Key_C] = false;
+        break;
     default:
         break;
     }
 }
 
 void MainWindow::mouseMoveEvent(QMouseEvent *e) {
-    if(screen->firstMouse) {
-        screen->mouseX = e->pos().x();
-        screen->mouseY = e->pos().y();
-        screen->firstMouse = false;
-    }
     GLint xOffset = (e->pos().x() - screen->mouseX);
     GLint yOffset = (screen->mouseY - e->pos().y());
     screen->mouseX = e->pos().x();
@@ -446,14 +318,17 @@ void MainWindow::mouseMoveEvent(QMouseEvent *e) {
     GLfloat sensitivity = 0.5f;
     xOffset *= sensitivity;
     yOffset *= sensitivity;
-    screen->yaw += xOffset;
-    screen->pitch += yOffset;
-    if(screen->pitch > 89.0f) screen->pitch = 89.0f;
-    if(screen->pitch < -89.0f) screen->pitch = -89.0f;
-    QVector3D front;
-    front.setX(std::cos(qDegreesToRadians(screen->pitch)) * cos(qDegreesToRadians(screen->yaw)));
-    front.setY(std::sin(qDegreesToRadians(screen->pitch)));
-    front.setZ(std::cos(qDegreesToRadians(screen->pitch)) * sin(qDegreesToRadians(screen->yaw)));
-    *screen->cameraFront = front.normalized();
-    QCursor::setPos(1920 / 2, 1280 / 2);
+    screen->player->mouseMove(xOffset, yOffset);
+}
+
+void MainWindow::enterEvent(QEnterEvent *e)
+{
+    screen->mouseX = e->position().x();
+    screen->mouseY = e->position().y();
+    //screen->firstMouse = false;
+}
+
+void MainWindow::leaveEvent(QEvent *e)
+{
+    //screen->firstMouse = false;
 }
