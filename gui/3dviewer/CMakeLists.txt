@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 project(3dviewer LANGUAGES CXX)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets OpenGLWidgets)
 
 qt_standard_project_setup()
 
@@ -11,12 +11,18 @@ qt_add_executable(3dviewer
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui
+    w_shader.vsh
+
+    fshader.fsh
+    ress.qrc
+
 )
 
 target_link_libraries(3dviewer
     PRIVATE
         Qt::Core
         Qt::Widgets
+        Qt6::OpenGLWidgets
 )
 
 include(GNUInstallDirs)
