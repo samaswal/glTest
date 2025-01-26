@@ -23,18 +23,16 @@ QT_END_NAMESPACE
 class Player {
 public:
     Player();
-    Player(QVector3D pos, QVector3D front, QVector3D up) : cameraPos(pos), cameraFront(front), worldUp(up){updateVectors();}
+    Player(QVector3D pos, QVector3D front, QVector3D up) : pitch(0.0f), yaw(-90.0f), cameraPos(pos), cameraFront(front), worldUp(up){this->updateVectors();}
     QVector3D cameraFront;
     QVector3D cameraUp;
     QVector3D cameraPos;
     QVector3D worldUp;
     QVector3D right;
-    GLint mouseX = 400;
-    GLint mouseY = 300;
     GLfloat pitch = 0.0f;
     GLfloat yaw = -90.0f;
     void move(std::array<bool, 1024> keys, GLfloat speed);
-    void mouseMove(GLint xOffset, GLint yOffset);
+    void mouseMove(GLfloat xOffset, GLfloat yOffset);
     QMatrix4x4 GetViewMatrix();
 private:
     void updateVectors();
@@ -50,14 +48,10 @@ public:
     Player *player;
     float rate = 0.5f;
     void roll(float dir);
-    QVector3D *cameraFront;
-    QVector3D *cameraPos;
-    QVector3D *cameraUp;
-    QVector3D direction;
     std::array<bool, 1024> keys;
     void move();
-    GLint mouseX = 400;
-    GLint mouseY = 300;
+    GLfloat mouseX = 0;
+    GLfloat mouseY = 0;
     bool firstMouse;
 
 protected:
@@ -65,12 +59,10 @@ protected:
     QOpenGLTexture *m_tex;
     QOpenGLTexture *m_tex1;
     QMatrix4x4 modelTransMatrix;
-    QMatrix4x4 view;
     QMatrix4x4 projection;
     QOpenGLShaderProgram m_program;
     QOpenGLShaderProgram m_program2;
     QOpenGLBuffer VBO;
-    QOpenGLBuffer m_pixBuffer;
     QOpenGLBuffer IBO;
     QOpenGLBuffer VBO1;
     QOpenGLBuffer VBO2;
@@ -107,7 +99,7 @@ private:
     void keyReleaseEvent(QKeyEvent *e) override;
     void mouseMoveEvent(QMouseEvent *e) override;
     void enterEvent(QEnterEvent *e) override;
-    void leaveEvent(QEvent *e) override;
+    //void leaveEvent(QEvent *e) override;
     Ui::MainWindow *ui;
 };
 

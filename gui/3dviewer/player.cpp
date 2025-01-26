@@ -3,10 +3,10 @@
 void Player::move(std::array<bool, 1024> keys, GLfloat speed)
 {
     if(keys[Qt::Key_W]) {
-        cameraPos += QVector3D(cameraFront.x(), 0.0f, cameraFront.z()) * speed;
+        cameraPos += QVector3D(cameraFront.x(), cameraFront.y(), cameraFront.z()) * speed;
     }
     if(keys[Qt::Key_S]) {
-        cameraPos -= QVector3D(cameraFront.x(), 0.0f, cameraFront.z()) * speed;
+        cameraPos -= QVector3D(cameraFront.x(), cameraFront.y(), cameraFront.z()) * speed;
     }
     if(keys[Qt::Key_D]) {
         cameraPos += right * speed;
@@ -14,16 +14,16 @@ void Player::move(std::array<bool, 1024> keys, GLfloat speed)
     if(keys[Qt::Key_A]) {
         cameraPos -= right * speed;
     }
-    if(keys[Qt::Key_Space]) {
-        cameraPos += worldUp * speed;
-    }
-    if(keys[Qt::Key_C]) {
-        cameraPos -= worldUp * speed;
-    }
-    updateVectors();
+    //if(keys[Qt::Key_Space]) {
+     //   cameraPos += worldUp * speed;
+    //}
+    //if(keys[Qt::Key_C]) {
+    //    cameraPos -= worldUp * speed;
+    //}
+    //updateVectors();
 }
 
-void Player::mouseMove(GLint xOffset, GLint yOffset)
+void Player::mouseMove(GLfloat xOffset, GLfloat yOffset)
 {
     yaw += xOffset;
     pitch += yOffset;
@@ -34,6 +34,7 @@ void Player::mouseMove(GLint xOffset, GLint yOffset)
 
 QMatrix4x4 Player::GetViewMatrix()
 {
+    updateVectors();
     QMatrix4x4 view;
     view.lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     return view;
@@ -41,11 +42,12 @@ QMatrix4x4 Player::GetViewMatrix()
 
 void Player::updateVectors() {
     QVector3D front;
-    front.setX(std::cos(qDegreesToRadians(yaw)) * std::cos(qDegreesToRadians(pitch)));
+    front.setX(std::cos(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
     front.setY(std::sin(qDegreesToRadians(pitch)));
-    front.setZ(std::sin(qDegreesToRadians(yaw) * std::cos(qDegreesToRadians(pitch))));
+    front.setZ(std::sin(qDegreesToRadians(yaw) * cos(qDegreesToRadians(pitch))));
     cameraFront = front.normalized();
-    right = QVector3D::crossProduct(cameraFront, worldUp).normalized();
-    cameraUp = QVector3D::crossProduct(right, cameraFront).normalized();
-
+    right = QVector3D::crossProduct(cameraFront, worldUp);
+    right.normalize();
+    cameraUp = QVector3D::crossProduct(right, cameraFront);
+    cameraUp.normalize();
 }

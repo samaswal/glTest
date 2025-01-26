@@ -7,24 +7,24 @@ void GLViewScreen::initializeGL() {
     glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
     initShaders();
     initCube(1);
+    setMouseTracking(true);
     projection.setToIdentity();
 
     player = new Player(QVector3D(0.0f, 0.0f, 3.0f), QVector3D(0.0f, 0.0f, -1.0f), QVector3D(0.0f, 1.0f, 0.0f));
 
     keys.fill(false);
     lastTime = QTime::currentTime().msecsSinceStartOfDay();
-    direction.setX(0);
-    setMouseTracking(true);
-    //mouseX = QCursor().pos().x();
-    //mouseY = QCursor().pos().y();
+    // direction.setX(0);
+    mouseX = QCursor().pos().x();
+    mouseY = QCursor().pos().y();
     firstMouse = true;
 
 }
 
 void GLViewScreen::resizeGL(int w, int h) {
-    //glViewport(0, 0, w, h);
+    glViewport(0, 0, w, h);
     //view.translate(QVector3D(0.0f, 0.0f, 0.0f));
-    projection.perspective(80.0f, static_cast<GLfloat>((800) / (600)), 0.1f, 100.0f);
+    projection.perspective(80.0f, static_cast<GLfloat>((w) / (h)), 0.1f, 100.0f);
 }
 
 void GLViewScreen::paintGL() {
@@ -33,7 +33,6 @@ void GLViewScreen::paintGL() {
     int vertLoc = 0;
     int colorLoc = 1;
     int texLoc = m_program.attributeLocation("texCoord");
-        //m_program.attributeLocation("qt_Vertex");
     int offset = 0;
     m_tex->bind(4);
     m_tex1->bind(5);
@@ -42,14 +41,14 @@ void GLViewScreen::paintGL() {
     m_program.bind();
     m_program.enableAttributeArray(vertLoc);
     m_program.setAttributeBuffer(vertLoc, GL_FLOAT, 0, 3, 5 * sizeof(GLfloat));
-
+    QMatrix4x4 view = player->GetViewMatrix();
     m_program.enableAttributeArray(texLoc);
     m_program.setAttributeBuffer(texLoc, GL_FLOAT, 3 * sizeof(GLfloat), 2, 5 * sizeof(GLfloat));
     //m_program.setUniformValue("trans", modelTransMatrix);
     m_program.setUniformValue("tex", 4);
     m_program.setUniformValue("tex1", 5);
     m_program.setUniformValue("rate", rate);
-    m_program.setUniformValue("view", player->GetViewMatrix());
+    m_program.setUniformValue("view", view);
     m_program.setUniformValue("projection", projection);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     for(int i = 0; i < 10; i++) {
@@ -225,6 +224,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     screen = new GLViewScreen(this);
     setCentralWidget(screen);
+    //screen->resizeGL(640, 480);
     timerId = startTimer(1);
     setMouseTracking(true);
 }
@@ -245,7 +245,6 @@ void MainWindow::timerEvent(QTimerEvent *e) {
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *e) {
-    float speed = 0.1f;
     switch(e->key()) {
         case Qt::Key_Up:
             if(screen->rate < 1.0f) screen->rate += 0.1f;
@@ -311,14 +310,15 @@ void MainWindow::keyReleaseEvent(QKeyEvent *e) {
 }
 
 void MainWindow::mouseMoveEvent(QMouseEvent *e) {
-    GLint xOffset = (e->pos().x() - screen->mouseX);
-    GLint yOffset = (screen->mouseY - e->pos().y());
+    GLfloat xOffset = (e->pos().x() - screen->mouseX);
+    GLfloat yOffset = (screen->mouseY - e->pos().y());
     screen->mouseX = e->pos().x();
     screen->mouseY = e->pos().y();
     GLfloat sensitivity = 0.5f;
     xOffset *= sensitivity;
     yOffset *= sensitivity;
     screen->player->mouseMove(xOffset, yOffset);
+    qDebug() << screen->mouseX << ' ' << screen->mouseY << Qt::endl;
 }
 
 void MainWindow::enterEvent(QEnterEvent *e)
@@ -328,7 +328,7 @@ void MainWindow::enterEvent(QEnterEvent *e)
     //screen->firstMouse = false;
 }
 
-void MainWindow::leaveEvent(QEvent *e)
-{
-    //screen->firstMouse = false;
-}
+// void MainWindow::leaveEvent(QEvent *e)
+// {
+//     //screen->firstMouse = false;
+// }
