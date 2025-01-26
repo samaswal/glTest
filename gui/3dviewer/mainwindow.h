@@ -29,10 +29,10 @@ public:
     QVector3D cameraPos;
     QVector3D worldUp;
     QVector3D right;
-    GLfloat pitch = 0.0f;
-    GLfloat yaw = -90.0f;
+    GLint pitch = 0;
+    GLint yaw = -90;
     void move(std::array<bool, 1024> keys, GLfloat speed);
-    void mouseMove(GLfloat xOffset, GLfloat yOffset);
+    void mouseMove(GLint xOffset, GLint yOffset);
     QMatrix4x4 GetViewMatrix();
 private:
     void updateVectors();
@@ -71,6 +71,8 @@ protected:
     void initCube(float width);
     void initTriangle();
     void initSquare();
+    void drawMap();
+    void drawObjects();
     float grade = 90.0f;
 
 private:
