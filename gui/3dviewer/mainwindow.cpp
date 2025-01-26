@@ -455,5 +455,6 @@ void MainWindow::mouseMoveEvent(QMouseEvent *e) {
     front.setY(std::sin(qDegreesToRadians(screen->pitch)));
     front.setZ(std::cos(qDegreesToRadians(screen->pitch)) * sin(qDegreesToRadians(screen->yaw)));
     *screen->cameraFront = front.normalized();
-    QCursor::setPos(1920 / 2, 1280 / 2);
+    qDebug() << screen->mouseX << ' ' << screen->mouseY << Qt::endl;
+    //QCursor::setPos(1920 / 2, 1280 / 2);
 }
