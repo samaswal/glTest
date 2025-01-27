@@ -3,10 +3,10 @@
 void Player::move(std::array<bool, 1024> keys, GLfloat speed)
 {
     if(keys[Qt::Key_W]) {
-        cameraPos += QVector3D(cameraFront.x(), 0.0f, cameraFront.z()) * speed;
+        cameraPos += QVector3D(std::cos(qDegreesToRadians(yaw)), 0.0f, std::sin(qDegreesToRadians(yaw))).normalized() * speed;
     }
     if(keys[Qt::Key_S]) {
-        cameraPos -= QVector3D(cameraFront.x(), 0.0f, cameraFront.z()) * speed;
+        cameraPos -= QVector3D(std::cos(qDegreesToRadians(yaw)), 0.0f, std::sin(qDegreesToRadians(yaw))).normalized() * speed;
     }
     if(keys[Qt::Key_D]) {
         cameraPos += right * speed;

@@ -20,6 +20,13 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
+struct Entity {
+    Entity(QVector3D npos, int nid) : pos(npos), id(nid), isActive(true){};
+    QVector3D pos;
+    GLint id;
+    bool isActive;
+};
+
 class Player {
 public:
     Player();
@@ -53,6 +60,10 @@ public:
     GLfloat mouseX = 0;
     GLfloat mouseY = 0;
     bool firstMouse;
+    QVector<GLint> cubesId;
+    bool selectMode;
+    void drawObjects();
+    void shoot();
 
 protected:
     void drawCube();
@@ -61,18 +72,20 @@ protected:
     QMatrix4x4 modelTransMatrix;
     QMatrix4x4 projection;
     QOpenGLShaderProgram m_program;
-    QOpenGLShaderProgram m_program2;
+    QOpenGLShaderProgram m_selectProgram;
     QOpenGLBuffer VBO;
     QOpenGLBuffer IBO;
     QOpenGLBuffer VBO1;
     QOpenGLBuffer VBO2;
-    QVector<QVector3D> cubePositions;
+    QVector<Entity> cubePositions;
     void initShaders();
     void initCube(float width);
     void initTriangle();
     void initSquare();
     void drawMap();
-    void drawObjects();
+    //void drawObjects();
+    void placeObjects();
+    void setMouse();
     float grade = 90.0f;
 
 private:
@@ -101,7 +114,7 @@ private:
     void keyReleaseEvent(QKeyEvent *e) override;
     void mouseMoveEvent(QMouseEvent *e) override;
     void enterEvent(QEnterEvent *e) override;
-    //void leaveEvent(QEvent *e) override;
+    void mousePressEvent(QMouseEvent *e) override;
     Ui::MainWindow *ui;
 };
 
