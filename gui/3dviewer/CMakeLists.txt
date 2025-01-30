@@ -18,6 +18,9 @@ qt_add_executable(3dviewer
     player.cpp
     select.vsh
     select.fsh
+    cube.h cube.cpp
+    floor.h floor.cpp
+    translatable.h
 
 )
 

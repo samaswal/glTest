@@ -13,6 +13,8 @@
 #include <cmath>
 #include <QOpenGLTexture>
 #include <QKeyEvent>
+#include "cube.h"
+#include "floor.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -53,6 +55,9 @@ public:
     void resizeGL(int w, int h) override;
     void paintGL() override;
     Player *player;
+    QVector<Cube> cubes;
+    QVector<Floor> xarta;
+    GLfloat wHeight = 0.0f;
     float rate = 0.5f;
     void roll(float dir);
     std::array<bool, 1024> keys;
@@ -64,6 +69,7 @@ public:
     bool selectMode;
     void drawObjects();
     void shoot();
+    void clean();
 
 protected:
     void drawCube();
@@ -78,6 +84,7 @@ protected:
     QOpenGLBuffer VBO1;
     QOpenGLBuffer VBO2;
     QVector<Entity> cubePositions;
+    QVector<Translatable *> objects;
     void initShaders();
     void initCube(float width);
     void initTriangle();
