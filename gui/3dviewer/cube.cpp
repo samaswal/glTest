@@ -5,6 +5,7 @@ Cube::Cube(const QVector3D &npos, const QVector3D &nrot, GLfloat angle) {
     this->rot = nrot;
     this->angle = angle;
     active = true;
+
     GLfloat vertices[] = {
         -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
@@ -71,9 +72,11 @@ void Cube::draw(QOpenGLShaderProgram *m_program, bool selectMode) {
         m_program->setAttributeBuffer(vertLoc, GL_FLOAT, 0, 3, 5 * sizeof(GLfloat));
         m_program->enableAttributeArray(texLoc);
         m_program->setAttributeBuffer(texLoc, GL_FLOAT, 3 * sizeof(GLfloat), 2, 5 * sizeof(GLfloat));
-        m_program->setUniformValue("tex", 4);
+        int n = m_program->uniformLocation("tex");
+        if(n != -1)m_program->setUniformValue("tex", 4);
         model.setToIdentity();
         model.translate(pos);
+        model.rotate(angle, rot);
         m_program->setUniformValue("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }

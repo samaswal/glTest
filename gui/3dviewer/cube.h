@@ -18,8 +18,11 @@ public:
     bool isActive() {return active;}
     int getId() override {return id;}
     void kill() {active = false;}
+    const QVector3D &getPos() {return pos;}
+    const QVector3D *norms() {return normals;}
 
 protected:
+    QVector3D normals[6];
     QOpenGLBuffer vbo;
     QOpenGLTexture *tex;
     QVector3D pos;

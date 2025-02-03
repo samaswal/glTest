@@ -69,9 +69,14 @@ public:
     bool selectMode;
     void drawObjects();
     void shoot();
+    void destroyCube();
+    void create();
     void clean();
+    bool stare();
+    QVector3D mouseToWorldCoords();
 
 protected:
+    bool intersectWithAABB(Cube c);
     void drawCube();
     QOpenGLTexture *m_tex;
     QOpenGLTexture *m_tex1;

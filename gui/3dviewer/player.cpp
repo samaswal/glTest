@@ -14,12 +14,12 @@ void Player::move(std::array<bool, 1024> keys, GLfloat speed)
     if(keys[Qt::Key_A]) {
         cameraPos -= right * speed;
     }
-    // if(keys[Qt::Key_Space]) {
-    //     cameraPos += worldUp * speed;
-    // }
-    // if(keys[Qt::Key_C]) {
-    //     cameraPos -= worldUp * speed;
-    // }
+    if(keys[Qt::Key_Space]) {
+        cameraPos += worldUp * speed;
+    }
+    if(keys[Qt::Key_C]) {
+        cameraPos -= worldUp * speed;
+    }
     updateVectors();
 }
 

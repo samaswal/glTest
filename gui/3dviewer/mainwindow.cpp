@@ -6,15 +6,21 @@ std::atomic<int> Translatable::next_id(1);
 void GLViewScreen::initializeGL() {
     initializeOpenGLFunctions();
     glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_CULL_FACE);
     glClearColor(0.0f, 0.4f, 0.7f, 1.0f);
     initShaders();
-    placeObjects();
-    for(int i = 0; i < 20; i++) {
-        for(int j = 0; j < 20; j++) {
-            cubes.append(Cube(QVector3D((GLfloat)i, wHeight, (GLfloat)j)));
-        }
-    }
-    placeObjects();
+   // placeObjects();
+    // for(int k = 0; k < 20; k++) {
+    // for(int i = 0; i < 16; i++) {
+    //     for(int j = 0; j < 16; j++) {
+            cubes.append(Cube(QVector3D(0.0f, 0.0f, 0.0f)));
+            cubes.append(Cube(QVector3D(1.0f, 0.0f, 0.0f)));
+            //cubes[1].rotate(45.0f, QVector3D(0.0f, 0.0f, 1.0f));
+
+    //     }
+    // }
+    // }
+    //placeObjects();
     //initSquare();
     //initCube(1);
     setMouseTracking(true);
@@ -38,15 +44,18 @@ void GLViewScreen::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     move();
     setMouse();
+    intersectWithAABB(cubes[0]);
     QMatrix4x4 view = player->GetViewMatrix();
     m_program.bind();
     m_program.setUniformValue("view", view);
     m_program.setUniformValue("projection", projection);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     for(int i = 0; i < cubes.size(); i++) {
         cubes[i].draw(&m_program, false);
     }
     for(int i = 0; i < xarta.size(); i++)
         xarta[i].draw(&m_program, false);
+    m_program.release();
 }
 
 void GLViewScreen::resizeGL(int w, int h) {
@@ -124,11 +133,85 @@ void GLViewScreen::move() {
     player->move(keys, speed);
 }
 
+bool GLViewScreen::stare() {
+    //QVector3D N(0.0f, 1.0f, 0.0f);
+    QVector3D res;
+    for(float i = 0; i < 10.0f; i += 0.1f) {
+        res = player->cameraPos + player->cameraFront * i;
+            if(cubes[0].getPos() == res) {
+                return true;
+        }
+    }
+    return false;
+}
+
+bool GLViewScreen::intersectWithAABB(Cube c) {
+    QVector3D min(c.getPos() - QVector3D(0.5f, 0.5f, 0.5f));
+    QVector3D max(c.getPos() + QVector3D(0.5f, 0.5f, 0.5f));
+    GLfloat tmin = (min.x() - player->cameraPos.x()) / player->cameraFront.x();
+    GLfloat tmax = (max.x() - player->cameraPos.x()) / player->cameraFront.x();
+
+    if(tmin > tmax) std::swap(tmin, tmax);
+    GLfloat tymin = (min.y() - player->cameraPos.y()) / player->cameraFront.y();
+    GLfloat tymax = (max.y() - player->cameraPos.y()) / player->cameraFront.y();
+
+    if(tymin > tymax) std::swap(tymin, tymax);
+
+    if((tymin > tmax) || (tmin > tymax)) return false;
+
+    if(tymin > tmin) tmin = tymin;
+    if(tymax < tmax) tmax = tymax;
+
+    GLfloat tzmin = (min.z() - player->cameraPos.z()) / player->cameraFront.z();
+    GLfloat tzmax = (max.z() - player->cameraPos.z()) / player->cameraFront.z();
+
+    if(tzmin > tzmax) std::swap(tzmin, tzmax);
+
+    if((tzmin > tmax) || (tmin > tzmax)) return false;
+
+
+    if(tzmin > tmin) tmin = tzmin;
+    if(tzmax < tmax) tmax = tzmax;
+
+    qDebug() << (tmin + tmax) / 2.0f << Qt::endl;
+
+    if(((tmin + tmax) / 2.0f) > 10.0f) return false;
+
+    return true;
+}
+
+QVector3D GLViewScreen::mouseToWorldCoords() {
+    QVector3D N(0.0f, 1.0f, 0.0f);
+    float t = -QVector3D::dotProduct(player->cameraPos, N) / QVector3D::dotProduct(player->cameraFront, N);
+    qDebug() << t << Qt::endl;
+    QVector3D preresult = player->cameraPos + player->cameraFront * t;
+    //qDebug() << preresult << Qt::endl;
+    //qDebug() << Dir << Qt::endl;
+    QVector3D result = QVector3D(round(preresult.x()), round(preresult.y()), round(preresult.z()));
+    return result;
+}
+
+void GLViewScreen::create() {
+    QVector3D pos = QVector3D(mouseToWorldCoords());
+    //if(pos.length() < 10.0f) {
+    //for(int i = 0; i < cubes.size(); i++) {
+        //if(cubes[i].getPos() == pos) {
+            pos += QVector3D(0.0f, 1.0f, 0.0f);
+            cubes.append(pos);
+      //      break;
+        //}
+    //}
+    //}
+}
+
 void GLViewScreen::shoot() {
-    glViewport(0, 0, width(), height());
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDisable(GL_DEPTH_TEST);
-    selectMode = true;
+    initializeOpenGLFunctions();
+
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+   glViewport(0, 0, width(), height());
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     QMatrix4x4 view = player->GetViewMatrix();
     m_selectProgram.bind();
     m_selectProgram.setUniformValue("view", view);
@@ -141,28 +224,32 @@ void GLViewScreen::shoot() {
         m_selectProgram.setUniformValue("r", (GLfloat)r);
         m_selectProgram.setUniformValue("g", (GLfloat)g);
         m_selectProgram.setUniformValue("b", (GLfloat)b);
-        cubes[i].draw(&m_selectProgram, false);
+        cubes[i].draw(&m_selectProgram, true);
     }
-    GLubyte pix[4];
+    //glClear(GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+
+    GLubyte pix[3];
     int x = width() / 2;
     int y = height() / 2;
+    mouseToWorldCoords();
     glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pix);
-        GLuint b = (pix[2]);
-        GLuint g = pix[1];
-        GLuint r = pix[0];
+    GLuint b = (pix[2]);
+    GLuint g = pix[1];
+    GLuint r = pix[0];
 
-        int id = (r << 16) | (g << 8) | b;
-        for(auto i = cubes.begin(); i != cubes.end(); i++) {
-            if(i->getId() == id && i->isActive()) {
-                i->kill();}
-            qDebug() << i->isActive() << ' '<< i->getId() << ' ' << pix[0] << Qt::endl;
 
+
+    int id = (r << 16) | (g << 8) | b;
+    for(auto i = cubes.begin(); i != cubes.end(); i++) {
+        if(i->getId() == id && i->isActive()) {
+            i->kill();
+        }
     }
-    //qDebug() << pix[0] << Qt::endl;
 
-    selectMode = false;
-    glEnable(GL_DEPTH_TEST);
-    //update();
+    m_selectProgram.release();
+    //clean();
+    update();
 }
 
 
@@ -269,7 +356,10 @@ void MainWindow::mouseMoveEvent(QMouseEvent *e) {
 }
 
 void MainWindow::mousePressEvent(QMouseEvent *e) {
-    screen->shoot();
+    if(e->button() == Qt::LeftButton)
+        screen->shoot();
+    else if(e->button() == Qt::RightButton)
+        screen->create();
     //screen->selectMode = !screen->selectMode;
 }
 
