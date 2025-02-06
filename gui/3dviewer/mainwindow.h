@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include <qopenglwidget.h>
-#include <qopenglfunctions.h>
+#include <qopenglextrafunctions.h>
 #include <QMatrix4x4>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLBuffer>
@@ -15,6 +15,7 @@
 #include <QKeyEvent>
 #include "cube.h"
 #include "floor.h"
+#include "chunk.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -47,7 +48,7 @@ private:
     void updateVectors();
 };
 
-class GLViewScreen : public QOpenGLWidget, protected QOpenGLFunctions {
+class GLViewScreen : public QOpenGLWidget, protected QOpenGLExtraFunctions {
 public:
     GLViewScreen(QWidget *parent = nullptr) : QOpenGLWidget(parent), IBO(QOpenGLBuffer::IndexBuffer),
         VBO(QOpenGLBuffer::VertexBuffer), m_tex(nullptr) {};
@@ -69,6 +70,8 @@ public:
     bool selectMode;
     void drawObjects();
     void shoot();
+    void blockIdentify();
+    void destroyBlock();
     void destroyCube();
     void create();
     void clean();
@@ -76,8 +79,9 @@ public:
     QVector3D mouseToWorldCoords();
 
 protected:
-    bool intersectWithAABB(Cube c);
+    GLfloat intersectWithAABB(Block c);
     void drawCube();
+    Chunk *chunk;
     QOpenGLTexture *m_tex;
     QOpenGLTexture *m_tex1;
     QMatrix4x4 modelTransMatrix;

@@ -13,8 +13,8 @@ void GLViewScreen::initializeGL() {
     // for(int k = 0; k < 20; k++) {
     // for(int i = 0; i < 16; i++) {
     //     for(int j = 0; j < 16; j++) {
-            cubes.append(Cube(QVector3D(0.0f, 0.0f, 0.0f)));
-            cubes.append(Cube(QVector3D(1.0f, 0.0f, 0.0f)));
+            //cubes.append(Cube(QVector3D(0.0f, 0.0f, 0.0f)));
+            //cubes.append(Cube(QVector3D(1.0f, 0.0f, 0.0f)));
             //cubes[1].rotate(45.0f, QVector3D(0.0f, 0.0f, 1.0f));
 
     //     }
@@ -23,10 +23,14 @@ void GLViewScreen::initializeGL() {
     //placeObjects();
     //initSquare();
     //initCube(1);
+    chunk = new Chunk(QVector2D(0.0f, 0.0f));
     setMouseTracking(true);
     projection.setToIdentity();
     selectMode = false;
-    player = new Player(QVector3D(0.0f, 1.5f, 3.0f), QVector3D(0.0f, 0.0f, 1.0f), QVector3D(0.0f, 1.0f, 0.0f));
+    GLfloat PLAYER_POS_Y = 100.0f;
+    GLfloat PLAYER_HEIGHT = 1.5f;
+    GLfloat BLOCK_HALF = 0.5f;
+    player = new Player(QVector3D(0.0f, PLAYER_POS_Y + PLAYER_HEIGHT, 0.0f), QVector3D(0.0f, 0.0f, 1.0f), QVector3D(0.0f, 1.0f, 0.0f));
 
     keys.fill(false);
     lastTime = QTime::currentTime().msecsSinceStartOfDay();
@@ -44,17 +48,22 @@ void GLViewScreen::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     move();
     setMouse();
-    intersectWithAABB(cubes[0]);
+    //intersectWithAABB(chunk->blocks[0][100][0]);
+    //qDebug() << chunk->blocks[0][100][0].posGlobal << Qt::endl;
+    //       blockIdentify();
+
+    //mouseToWorldCoords();
     QMatrix4x4 view = player->GetViewMatrix();
     m_program.bind();
     m_program.setUniformValue("view", view);
     m_program.setUniformValue("projection", projection);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    for(int i = 0; i < cubes.size(); i++) {
-        cubes[i].draw(&m_program, false);
-    }
-    for(int i = 0; i < xarta.size(); i++)
-        xarta[i].draw(&m_program, false);
+    // for(int i = 0; i < cubes.size(); i++) {
+    //     cubes[i].draw(&m_program, false);
+    // }
+    // for(int i = 0; i < xarta.size(); i++)
+    //     xarta[i].draw(&m_program, false);
+    chunk->draw(&m_program);
     m_program.release();
 }
 
@@ -145,9 +154,9 @@ bool GLViewScreen::stare() {
     return false;
 }
 
-bool GLViewScreen::intersectWithAABB(Cube c) {
-    QVector3D min(c.getPos() - QVector3D(0.5f, 0.5f, 0.5f));
-    QVector3D max(c.getPos() + QVector3D(0.5f, 0.5f, 0.5f));
+GLfloat GLViewScreen::intersectWithAABB(Block c) {
+    QVector3D min(c.posGlobal - QVector3D(0.5f, 0.5f, 0.5f));
+    QVector3D max(c.posGlobal + QVector3D(0.5f, 0.5f, 0.5f));
     GLfloat tmin = (min.x() - player->cameraPos.x()) / player->cameraFront.x();
     GLfloat tmax = (max.x() - player->cameraPos.x()) / player->cameraFront.x();
 
@@ -157,7 +166,7 @@ bool GLViewScreen::intersectWithAABB(Cube c) {
 
     if(tymin > tymax) std::swap(tymin, tymax);
 
-    if((tymin > tmax) || (tmin > tymax)) return false;
+    if((tymin > tmax) || (tmin > tymax)) return -1.0f;
 
     if(tymin > tmin) tmin = tymin;
     if(tymax < tmax) tmax = tymax;
@@ -167,18 +176,38 @@ bool GLViewScreen::intersectWithAABB(Cube c) {
 
     if(tzmin > tzmax) std::swap(tzmin, tzmax);
 
-    if((tzmin > tmax) || (tmin > tzmax)) return false;
+    if((tzmin > tmax) || (tmin > tzmax)) return -1.0f;
 
 
     if(tzmin > tmin) tmin = tzmin;
     if(tzmax < tmax) tmax = tzmax;
 
+    if(((tmin + tmax) / 2.0f) > 5.0f) return -1.0f;
+
     qDebug() << (tmin + tmax) / 2.0f << Qt::endl;
 
-    if(((tmin + tmax) / 2.0f) > 10.0f) return false;
-
-    return true;
+    return (tmin + tmax) / 2.0f;
 }
+
+void GLViewScreen::blockIdentify() {
+    QMap<GLfloat, QVector3D> intersect;
+    for(int y = 0; y < 256; y++) {
+        for(int x = 0; x < 16; x++) {
+            for(int z = 0; z < 16; z++) {
+                if(chunk->blocks[x][y][z].active) {
+                    GLfloat res = intersectWithAABB(chunk->blocks[x][y][z]);
+                    if(res > 0)
+                        intersect.insert(res, QVector3D(x, y, z));
+                }
+            }
+        }
+    }
+    if(intersect.size() > 0) {
+        chunk->destroyBlock(*intersect.begin());
+    }
+    //qDebug() << intersect << Qt::endl;
+}
+
 
 QVector3D GLViewScreen::mouseToWorldCoords() {
     QVector3D N(0.0f, 1.0f, 0.0f);
@@ -357,7 +386,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *e) {
 
 void MainWindow::mousePressEvent(QMouseEvent *e) {
     if(e->button() == Qt::LeftButton)
-        screen->shoot();
+        screen->blockIdentify();
     else if(e->button() == Qt::RightButton)
         screen->create();
     //screen->selectMode = !screen->selectMode;

@@ -21,6 +21,8 @@ qt_add_executable(3dviewer
     cube.h cube.cpp
     floor.h floor.cpp
     translatable.h
+    chunk.h chunk.cpp
+    block.h block.cpp
 
 )
 
