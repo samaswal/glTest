@@ -6,7 +6,7 @@ Chunk::Chunk(const QVector2D &npos) {
     for(int y = 0; y < 101; y++) {
         for(int x = 0; x < 16; x++) {
             for(int z = 0; z < 16; z++) {
-                blocks[x][y][z] = *new Block(QVector3D(x, y, z), true);
+                blocks[x][y][z] = *new Block(QVector3D(x + 16 * pos.x(), y, z + 16 * pos.y()), true);
             }
         }
     }

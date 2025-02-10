@@ -23,7 +23,12 @@ void GLViewScreen::initializeGL() {
     //placeObjects();
     //initSquare();
     //initCube(1);
-    chunk = new Chunk(QVector2D(0.0f, 0.0f));
+    //chunk = new Chunk(QVector2D(0.0f, 0.0f));
+    for(int i = 0; i < 3; i++) {
+        for(int j = 0; j < 3; j++) {
+            chunks.append(QVector2D((GLfloat)i, (GLfloat)j));
+        }
+    }
     setMouseTracking(true);
     projection.setToIdentity();
     selectMode = false;
@@ -34,6 +39,7 @@ void GLViewScreen::initializeGL() {
 
     keys.fill(false);
     lastTime = QTime::currentTime().msecsSinceStartOfDay();
+    //lastFrame = QTime::currentTime().second();
     // direction.setX(0);
     firstMouse = true;
 }
@@ -63,7 +69,11 @@ void GLViewScreen::paintGL() {
     // }
     // for(int i = 0; i < xarta.size(); i++)
     //     xarta[i].draw(&m_program, false);
-    chunk->draw(&m_program);
+    //chunk->draw(&m_program);
+    for(int i = 0; i < 9; i++) {
+
+        chunks[i].draw(&m_program);
+    }
     m_program.release();
 }
 
@@ -190,12 +200,22 @@ GLfloat GLViewScreen::intersectWithAABB(Block c) {
 }
 
 void GLViewScreen::blockIdentify() {
+    int xPos = player->cameraPos.x();
+    int zPos = player->cameraPos.z();
+    xPos -= xPos % 16;
+    xPos = xPos / 16;
+    zPos -= zPos % 16;
+    zPos = zPos / 16;
+    int id = 0;
+    for(; id < chunks.size(); id++) {
+        if((chunks[id].coords().x() == xPos) && (chunks[id].coords().y() == zPos)) break;
+    }
     QMap<GLfloat, QVector3D> intersect;
     for(int y = 0; y < 256; y++) {
         for(int x = 0; x < 16; x++) {
             for(int z = 0; z < 16; z++) {
-                if(chunk->blocks[x][y][z].active) {
-                    GLfloat res = intersectWithAABB(chunk->blocks[x][y][z]);
+                if(chunks[id].blocks[x][y][z].active) {
+                    GLfloat res = intersectWithAABB(chunks[id].blocks[x][y][z]);
                     if(res > 0)
                         intersect.insert(res, QVector3D(x, y, z));
                 }
@@ -203,7 +223,7 @@ void GLViewScreen::blockIdentify() {
         }
     }
     if(intersect.size() > 0) {
-        chunk->destroyBlock(*intersect.begin());
+        chunks[id].destroyBlock(*intersect.begin());
     }
     //qDebug() << intersect << Qt::endl;
 }

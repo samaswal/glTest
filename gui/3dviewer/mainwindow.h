@@ -79,9 +79,14 @@ public:
     QVector3D mouseToWorldCoords();
 
 protected:
+    int framesCnt;
+    GLfloat lastFrame;
+    GLfloat currFrame;
+
     GLfloat intersectWithAABB(Block c);
     void drawCube();
     Chunk *chunk;
+    QVector<Chunk> chunks;
     QOpenGLTexture *m_tex;
     QOpenGLTexture *m_tex1;
     QMatrix4x4 modelTransMatrix;

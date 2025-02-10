@@ -59,6 +59,7 @@ static const GLfloat cubeVertices[6][6][5] = {
 struct Block {
     Block(QVector3D npos = QVector3D(), bool nactive = false) : posGlobal(npos), active(nactive){};
     QVector3D posGlobal;
+
     bool active = false;
 };
 
