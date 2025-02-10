@@ -3,10 +3,11 @@
 
 Chunk::Chunk(const QVector2D &npos) {
     pos = npos;
-    for(int y = 0; y < 101; y++) {
+    for(int y = 0; y < 256; y++) {
         for(int x = 0; x < 16; x++) {
             for(int z = 0; z < 16; z++) {
                 blocks[x][y][z] = *new Block(QVector3D(x + 16 * pos.x(), y, z + 16 * pos.y()), true);
+                if(y > 100) blocks[x][y][z].active = false;
             }
         }
     }
@@ -41,7 +42,6 @@ void Chunk::addCubeVertices(int chunkX, int chunkY, int chunkZ, int index) {
 }
 
 void Chunk::buildVertexArray() {
-    int cnt = 0;
     for(int y = 0; y < 256; y++) {
         for(int x = 0; x < 16; x++) {
             for(int z = 0; z < 16; z++) {
@@ -65,6 +65,20 @@ void Chunk::destroyBlock(QVector3D pos){
     vbo.bind();
     vbo.allocate(chunkVertices.data(), chunkVertices.size() * sizeof(GLfloat));
     vbo.release();
+    }
+}
+
+void Chunk::createBlock(QVector3D pos) {
+    if(!blocks[(int)pos.x()][(int)pos.y()][(int)pos.z()].active) {
+        blocks[(int)pos.x()][(int)pos.y()][(int)pos.z()].active = true;
+        int index = ((int)pos.x() * 16) + ((int)pos.y() * 256) + (int)pos.z();
+        addCubeVertices(pos.x(), pos.y(), pos.z(), index);
+        cnt++;
+        vbo.destroy();
+        vbo.create();
+        vbo.bind();
+        vbo.allocate(chunkVertices.data(), chunkVertices.size() * sizeof(GLfloat));
+        vbo.release();
     }
 }
 

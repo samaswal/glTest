@@ -72,6 +72,7 @@ private:
     QOpenGLTexture *tex;
     QVector<GLfloat> chunkVertices;
     void removeVertex(QVector3D pos);
+    int cnt = 0;
 public:
     Block blocks[16][256][16];
     void buildVertexArray();
@@ -80,6 +81,7 @@ public:
     void draw(QOpenGLShaderProgram *m_program);
     const QVector2D &coords() {return pos;}
     void destroyBlock(QVector3D pos);
+    void createBlock(QVector3D pos);
 };
 
 #endif // CHUNK_H

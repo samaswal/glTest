@@ -194,6 +194,40 @@ GLfloat GLViewScreen::intersectWithAABB(Block c) {
 
     if(((tmin + tmax) / 2.0f) > 5.0f) return -1.0f;
 
+    return (tmin + tmax) / 2.0f;
+}
+
+GLfloat GLViewScreen::intersectWithChunk(Chunk c) {
+    QVector3D posGlobal = QVector3D(c.coords().x() * 16 + 8.0f, 128.0f, c.coords().y() * 16 + 8.0f);
+    QVector3D min(posGlobal - QVector3D(8.0f, 128.0f, 8.0f));
+    QVector3D max(posGlobal + QVector3D(8.0f, 128.0f, 8.0f));
+    GLfloat tmin = (min.x() - player->cameraPos.x()) / player->cameraFront.x();
+    GLfloat tmax = (max.x() - player->cameraPos.x()) / player->cameraFront.x();
+
+    if(tmin > tmax) std::swap(tmin, tmax);
+    GLfloat tymin = (min.y() - player->cameraPos.y()) / player->cameraFront.y();
+    GLfloat tymax = (max.y() - player->cameraPos.y()) / player->cameraFront.y();
+
+    if(tymin > tymax) std::swap(tymin, tymax);
+
+    if((tymin > tmax) || (tmin > tymax)) return -999.0f;
+
+    if(tymin > tmin) tmin = tymin;
+    if(tymax < tmax) tmax = tymax;
+
+    GLfloat tzmin = (min.z() - player->cameraPos.z()) / player->cameraFront.z();
+    GLfloat tzmax = (max.z() - player->cameraPos.z()) / player->cameraFront.z();
+
+    if(tzmin > tzmax) std::swap(tzmin, tzmax);
+
+    if((tzmin > tmax) || (tmin > tzmax)) return -999.0f;
+
+
+    if(tzmin > tmin) tmin = tzmin;
+    if(tzmax < tmax) tmax = tzmax;
+
+    //if(((tmin + tmax) / 2.0f) > 5.0f) return -999.0f;
+
     qDebug() << (tmin + tmax) / 2.0f << Qt::endl;
 
     return (tmin + tmax) / 2.0f;
@@ -210,24 +244,32 @@ void GLViewScreen::blockIdentify() {
     for(; id < chunks.size(); id++) {
         if((chunks[id].coords().x() == xPos) && (chunks[id].coords().y() == zPos)) break;
     }
+    //QMap<GLfloat, QVector3D> intersectChunk;
+    // QMap<GLfloat, int> chunkTrace;
+    // for(int id = 0; id < chunks.size(); id++) {
+    //     GLfloat res = intersectWithChunk(chunks[id]);
+    //     if(res != -999.0f)
+    //         chunkTrace.insert(res, id);
+    // }
+    // int id = chunkTrace.begin().value();
     QMap<GLfloat, QVector3D> intersect;
-    for(int y = 0; y < 256; y++) {
-        for(int x = 0; x < 16; x++) {
-            for(int z = 0; z < 16; z++) {
-                if(chunks[id].blocks[x][y][z].active) {
-                    GLfloat res = intersectWithAABB(chunks[id].blocks[x][y][z]);
-                    if(res > 0)
-                        intersect.insert(res, QVector3D(x, y, z));
+        for(int y = 0; y < 256; y++) {
+            for(int x = 0; x < 16; x++) {
+                for(int z = 0; z < 16; z++) {
+                    if(chunks[id].blocks[x][y][z].active) {
+                        GLfloat res = intersectWithAABB(chunks[id].blocks[x][y][z]);
+                        if(res > 0)
+                            intersect.insert(res, QVector3D(x, y, z));
+                    }
                 }
             }
         }
-    }
+
     if(intersect.size() > 0) {
         chunks[id].destroyBlock(*intersect.begin());
-    }
     //qDebug() << intersect << Qt::endl;
+    }
 }
-
 
 QVector3D GLViewScreen::mouseToWorldCoords() {
     QVector3D N(0.0f, 1.0f, 0.0f);
@@ -241,16 +283,61 @@ QVector3D GLViewScreen::mouseToWorldCoords() {
 }
 
 void GLViewScreen::create() {
-    QVector3D pos = QVector3D(mouseToWorldCoords());
-    //if(pos.length() < 10.0f) {
-    //for(int i = 0; i < cubes.size(); i++) {
-        //if(cubes[i].getPos() == pos) {
-            pos += QVector3D(0.0f, 1.0f, 0.0f);
-            cubes.append(pos);
-      //      break;
-        //}
-    //}
-    //}
+    int xPos = player->cameraPos.x();
+    int zPos = player->cameraPos.z();
+    xPos -= xPos % 16;
+    xPos = xPos / 16;
+    zPos -= zPos % 16;
+    zPos = zPos / 16;
+    int id = 0;
+    for(; id < chunks.size(); id++) {
+        if((chunks[id].coords().x() == xPos) && (chunks[id].coords().y() == zPos)) break;
+    }
+
+    QMap<GLfloat, QVector3D> intersect;
+    for(int y = 0; y < 256; y++) {
+        for(int x = 0; x < 16; x++) {
+            for(int z = 0; z < 16; z++) {
+                if(chunks[id].blocks[x][y][z].active) {
+                    GLfloat res = intersectWithAABB(chunks[id].blocks[x][y][z]);
+                    if(res > 0)
+                        intersect.insert(res, QVector3D(x, y, z));
+                }
+            }
+        }
+    }
+    if(intersect.size() > 0) {
+        QVector3D ps = intersect.begin().value();
+        QMap<GLfloat, QVector3D> newPos;
+        if(ps.y() < 255) {
+            GLfloat res = intersectWithAABB(chunks[id].blocks[(int)ps.x()][(int)ps.y() + 1][(int)ps.z()]);
+            if(res > 0) newPos.insert(res, QVector3D(ps.x(), ps.y() + 1, ps.z()));
+        }
+        if(ps.y() > 0) {
+            GLfloat res = intersectWithAABB(chunks[id].blocks[(int)ps.x()][(int)ps.y() - 1][(int)ps.z()]);
+            if(res > 0) newPos.insert(res, QVector3D(ps.x(), ps.y() - 1, ps.z()));
+        }
+        if(ps.x() < 15) {
+            GLfloat res = intersectWithAABB(chunks[id].blocks[(int)ps.x() + 1][(int)ps.y()][(int)ps.z()]);
+            if(res > 0) newPos.insert(res, QVector3D(ps.x() + 1, ps.y(), ps.z()));
+        }
+        if(ps.x() > 0) {
+            GLfloat res = intersectWithAABB(chunks[id].blocks[(int)ps.x() - 1][(int)ps.y()][(int)ps.z()]);
+            if(res > 0) newPos.insert(res, QVector3D(ps.x() - 1, ps.y(), ps.z()));
+        }
+        if(ps.z() < 15) {
+            GLfloat res = intersectWithAABB(chunks[id].blocks[(int)ps.x()][(int)ps.y()][(int)ps.z() + 1]);
+            if(res > 0) newPos.insert(res, QVector3D(ps.x(), ps.y(), ps.z() + 1));
+        }
+        if(ps.z() > 0) {
+            GLfloat res = intersectWithAABB(chunks[id].blocks[(int)ps.x()][(int)ps.y()][(int)ps.z() - 1]);
+            if(res > 0) newPos.insert(res, QVector3D(ps.x(), ps.y(), ps.z() - 1));
+        }
+
+        if(!newPos.empty())
+        chunks[id].createBlock(*newPos.begin());
+
+    }
 }
 
 void GLViewScreen::shoot() {

@@ -84,6 +84,7 @@ protected:
     GLfloat currFrame;
 
     GLfloat intersectWithAABB(Block c);
+    GLfloat intersectWithChunk(Chunk c);
     void drawCube();
     Chunk *chunk;
     QVector<Chunk> chunks;
